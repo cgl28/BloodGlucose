@@ -14,29 +14,14 @@ const theme = createTheme({
   // optional: typography, component defaults/overrides
 })
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>
-)
+// Ensure we only create one root across HMR reloads
+const container = document.getElementById("root");
+if (!window.__REACT_ROOT__) {
+  window.__REACT_ROOT__ = ReactDOM.createRoot(container);
+}
+window.__REACT_ROOT__.render(<App />)
 
 import '@fontsource/roboto/300.css'
 import '@fontsource/roboto/400.css'
 import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
-
-
-
-
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
