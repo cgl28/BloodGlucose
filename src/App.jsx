@@ -71,8 +71,13 @@ function loadDemo() {
 
 const demoData = {
   readings: [
-    // Day 1 (2025-11-03)
-    { id: crypto.randomUUID(), ts: "2025-11-03T08:10", value: 7.2 },
+    // Day 1 (2025-11-02)
+    { id: crypto.randomUUID(), ts: "2025-11-02T07:10", value: 5.8 },
+    { id: crypto.randomUUID(), ts: "2025-11-02T12:45", value: 15.8 },
+    { id: crypto.randomUUID(), ts: "2025-11-02T21:20", value: 8.6 },
+    
+    // Day 2 (2025-11-03)
+    { id: crypto.randomUUID(), ts: "2025-11-03T08:10", value: 6.2 },
     { id: crypto.randomUUID(), ts: "2025-11-03T14:20", value: 13.8 },
     { id: crypto.randomUUID(), ts: "2025-11-03T22:15", value: 5.6 },
 
@@ -82,7 +87,7 @@ const demoData = {
     { id: crypto.randomUUID(), ts: "2025-11-04T21:40", value: 10.8 },
 
     // Day 3 (2025-11-05)
-    { id: crypto.randomUUID(), ts: "2025-11-05T09:00", value: 8.1 },
+    { id: crypto.randomUUID(), ts: "2025-11-05T09:00", value: 7.1 },
     { id: crypto.randomUUID(), ts: "2025-11-05T15:30", value: 14.2 }, // steroid pattern
     { id: crypto.randomUUID(), ts: "2025-11-05T23:10", value: 6.4 },
   ],
@@ -280,6 +285,8 @@ function ErrorBoundary({ children }) {
 // ---------- Main Component ----------
 export default function InpatientDiabetesAdvisor() {
   const [readings, setReadings] = useState([initialReadingRow()]);
+// Diabetes type: 'type1' | 'type2' | 'other'
+  const [diabetesType, setDiabetesType] = useState('type2');
   const [meds, setMeds] = useState({
     basalInsulin: false, basalDose: "",
     bolusInsulin: false,
@@ -337,6 +344,23 @@ export default function InpatientDiabetesAdvisor() {
         <Container maxWidth="lg" sx={{ my: 3 }}>
           <Grid container spacing={3}>
             {/* LEFT COLUMN: Inputs */}
+            <Paper elevation={0} sx={{ p: 2, mb: 2 }}>
+              <SectionHeader title="Diabetes type" subtitle="Select the patient’s diabetes type" />
+              <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='type1'} onChange={() => setDiabetesType('type1')} />}
+                  label="Type 1"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='type2'} onChange={() => setDiabetesType('type2')} />}
+                  label="Type 2"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='other'} onChange={() => setDiabetesType('other')} />}
+                  label="Other"
+                />
+              </Stack>
+            </Paper>
             <Grid  xs={12} md={7}>
               {/* 1) BLOOD GLUCOSE INPUT */}
               <Paper elevation={0} sx={{ p: 2 }}>
@@ -346,9 +370,19 @@ export default function InpatientDiabetesAdvisor() {
                 {/* 24-hour overlay chart (inserted under the input list) */}
                 <Box sx={{ mt: 2 }}>
                   <SectionHeader title="24-hour overlay chart" subtitle="Each colour is a different day — target band highlighted." />
-                  <Paper elevation={0} sx={{ p: 2, mt: 1 }}>
-                    <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
-                  </Paper>
+                  <Grid container spacing={2} sx={{ mt: 1 }}>
+                    <Grid xs={12} md={8}>
+                      <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
+                        <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
+                      </Paper>
+                    </Grid>
+                    <Grid xs={12} md={4}>
+                      <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
+                        <SummaryTable stats={rulesOutput.stats} />
+                      </Paper>
+                    </Grid>
+                  </Grid>
                 </Box>
               </Paper>
 
@@ -364,10 +398,11 @@ export default function InpatientDiabetesAdvisor() {
             {/* RIGHT COLUMN: Advice & Links */}
             <Grid  xs={12} md={5}>
               <AdvicePanel rulesOutput={rulesOutput} guidance={guidance} />
+              {/*
               <Paper elevation={0} sx={{ p: 2, mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
                 <SummaryTable stats={rulesOutput.stats} />
-              </Paper>
+              </Paper> */}
               {/* Guidance links moved into AdvicePanel */}
             </Grid>
           </Grid>

@@ -48,10 +48,14 @@ export default function AdvicePanel({ rulesOutput, guidance }) {
         </Typography>
       </Box>
 
+
+      {/*} summary table removed from here. 
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
         <SummaryTable stats={rulesOutput.stats} />
       </Box>
+        */}
+
 
       <Box sx={{ mt: 2 }}>
         <SectionHeader title="Guidance & Policies" icon={null} />
