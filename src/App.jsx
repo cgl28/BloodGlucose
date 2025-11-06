@@ -36,6 +36,7 @@ import SectionHeader from "./components/SectionHeader";
 import ReadingsList from "./components/ReadingsList";
 import MedicationSection from "./components/MedicationSection";
 import AdvicePanel from "./components/AdvicePanel";
+import GlucoseDayOverlayChart from './components/GlucoseDayOverlayChart'
 
 // ===== DISCLAIMER =====
 // This is a non-clinical demo for education only. Not for patient care.
@@ -317,6 +318,14 @@ export default function InpatientDiabetesAdvisor() {
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<ScienceIcon />} title="Blood glucose readings" subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)." />
                 <ReadingsList readings={readings} setReadings={setReadings} addRow={addRow} clearRows={clearRows} />
+
+                {/* 24-hour overlay chart (inserted under the input list) */}
+                <Box sx={{ mt: 2 }}>
+                  <SectionHeader title="24-hour overlay chart" subtitle="Each colour is a different day — target band highlighted." />
+                  <Paper elevation={0} sx={{ p: 2, mt: 1 }}>
+                    <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
+                  </Paper>
+                </Box>
               </Paper>
 
               <Divider sx={{ my: 2 }} />
