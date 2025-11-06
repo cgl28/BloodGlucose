@@ -331,31 +331,42 @@ export default function InpatientDiabetesAdvisor() {
               {/* 1) BLOOD GLUCOSE INPUT */}
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<ScienceIcon />} title="Blood glucose readings" subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)." />
-                <Box sx={{ height: 360, mt: 1 }}>
-                  <DataGrid
-                    rows={rows}
-                    columns={columns}
-                    processRowUpdate={processRowUpdate}
-                    // keep selection simple: capture clicked row id (single selection)
-                    onRowClick={(params) => setSelection(params.id)}
-                    disableSelectionOnClick
-                    experimentalFeatures={{ newEditingApi: true }}
-                  />
+                <Box sx={{ mt: 1 }}>
+                  {readings.map((r, i) => {
+                    const valueErr = r.value !== "" && asNumber(r.value) == null;
+                    return (
+                      <Stack key={r.id} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <TextField
+                          label="Timestamp"
+                          type="datetime-local"
+                          value={r.ts}
+                          onChange={e => setReadings(prev => prev.map(x => x.id===r.id ? {...x, ts: e.target.value} : x))}
+                          InputLabelProps={{ shrink: true }}
+                          sx={{ width: 280 }}
+                        />
+                        <TextField
+                          label="BG (mmol/L)"
+                          type="number"
+                          inputProps={{ step: "0.1", min: "0" }}
+                          value={r.value}
+                          onChange={e => setReadings(prev => prev.map(x => x.id===r.id ? {...x, value: e.target.value} : x))}
+                          error={valueErr}
+                          helperText={valueErr ? "Enter a number" : ""}
+                          sx={{ width: 160 }}
+                        />
+                        <Button variant="outlined" color="error" onClick={() => setReadings(prev => prev.filter(x => x.id !== r.id))}>Remove</Button>
+                        {i === readings.length - 1 && (
+                          <Button variant="contained" startIcon={<AddIcon />} onClick={() => addRow(true)}>Add Now</Button>
+                        )}
+                      </Stack>
+                    );
+                  })}
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Button variant="text" onClick={() => addRow(false)}>Add empty row</Button>
+                    <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => clearRows()}>Clear all</Button>
+                  </Stack>
                 </Box>
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                   <Button variant="contained" startIcon={<AddIcon />} onClick={() => addRow(true)}>Add “Now”</Button>
-                   <Button variant="text" onClick={() => addRow(false)}>Add empty row</Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => removeSelected(selection)}
-                    disabled={!selection}
-                  >
-                    Remove selected
-                  </Button>
-                </Stack>
-              </Paper>
+                 </Paper>
 
               <Divider sx={{ my: 2 }} />
 
@@ -386,28 +397,25 @@ export default function InpatientDiabetesAdvisor() {
                   </Grid>
 
                   {/* Oral agents */}
-                  <Grid  xs={12}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Oral / non-insulin agents</Typography>
-                    <Grid container spacing={2}>
-                      <Grid  xs={12} md={3}>
-                        <FormControlLabel
-                          control={<Checkbox checked={meds.su} onChange={e=>setMeds(m=>({...m, su:e.target.checked}))} />}
-                          label="Sulfonylurea"
-                        />
-                      </Grid>
-                      <Grid  xs={6} md={4}>
-                        <TextField label="Name" value={meds.suName} onChange={e=>setMeds(m=>({...m, suName:e.target.value}))} fullWidth />
-                      </Grid>
-                      <Grid  xs={6} md={3}>
-                        <TextField label="Dose (mg/day)" type="number" value={meds.suDose} onChange={e=>setMeds(m=>({...m, suDose:e.target.value}))} fullWidth />
-                      </Grid>
-                      <Grid  xs={6} md={1.5}>
-                        <FormControlLabel control={<Checkbox checked={meds.metformin} onChange={e=>setMeds(m=>({...m, metformin:e.target.checked}))} />} label="Metformin" />
-                      </Grid>
-                      <Grid  xs={6} md={1.5}>
-                        <FormControlLabel control={<Checkbox checked={meds.sglt2} onChange={e=>setMeds(m=>({...m, sglt2:e.target.checked}))} />} label="SGLT2i" />
-                      </Grid>
-                    </Grid>
+                  <Grid xs={12}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Key oral agents & steroids</Typography>
+                    <Stack spacing={1}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <FormControlLabel control={<Checkbox checked={meds.metformin} onChange={e => setMeds(m => ({...m, metformin: e.target.checked}))} />} label="Metformin" />
+                        <TextField label="Notes / dose" value={meds.metforminNotes || ""} onChange={e => setMeds(m => ({...m, metforminNotes: e.target.value}))} sx={{ width: 300 }} />
+                      </Stack>
+
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <FormControlLabel control={<Checkbox checked={meds.su} onChange={e => setMeds(m => ({...m, su: e.target.checked}))} />} label="Sulfonylurea" />
+                        <TextField label="Agent name" value={meds.suName} onChange={e => setMeds(m => ({...m, suName: e.target.value}))} sx={{ width: 200 }} />
+                        <TextField label="Dose (mg/day)" type="number" value={meds.suDose} onChange={e => setMeds(m => ({...m, suDose: e.target.value}))} sx={{ width: 160 }} />
+                      </Stack>
+
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <FormControlLabel control={<Checkbox checked={meds.steroidAM} onChange={e => setMeds(m => ({...m, steroidAM: e.target.checked}))} />} label="Once-daily AM steroid" />
+                        <TextField label="Steroid dose / notes" value={meds.steroidNotes || ""} onChange={e => setMeds(m => ({...m, steroidNotes: e.target.value}))} sx={{ width: 300 }} />
+                      </Stack>
+                    </Stack>
                   </Grid>
 
                   {/* Context */}
@@ -436,12 +444,6 @@ export default function InpatientDiabetesAdvisor() {
                           value={context.weightKg}
                           onChange={e=>setContext(c=>({...c, weightKg: e.target.value}))}
                           fullWidth
-                        />
-                      </Grid>
-                      <Grid  xs={12}>
-                        <FormControlLabel
-                          control={<Checkbox checked={meds.steroidAM} onChange={e=>setMeds(m=>({...m, steroidAM:e.target.checked}))} />}
-                          label="On once-daily AM prednisolone (or equivalent)"
                         />
                       </Grid>
                     </Grid>
