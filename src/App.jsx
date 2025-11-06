@@ -29,6 +29,7 @@ import InsightsIcon from "@mui/icons-material/Insights";
 import LinkIcon from "@mui/icons-material/Link";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
+
 // components (extracted)
 import SectionHeader from "./components/SectionHeader";
 import ReadingsList from "./components/ReadingsList";
@@ -37,6 +38,8 @@ import AdvicePanel from "./components/AdvicePanel";
 import GlucoseDayOverlayChart from './components/GlucoseDayOverlayChart'
 import Grid from "@mui/material/Grid";
 import DataCheckerDialog from './components/DataCheckerDialog'
+import titrationSuggestions from './lib/titration';
+
 
 
 // ===== DISCLAIMER =====
@@ -56,6 +59,13 @@ function sortByTime(readings) { return [...readings].sort((a, b) => new Date(a.t
 function asNumber(x) { const n = Number(x); return Number.isFinite(n) ? n : null; }
 
 const initialReadingRow = () => ({ id: crypto.randomUUID(), ts: "", value: "" });
+
+const targets = {
+  fastingLow: 6,
+  fastingHigh: 10,
+  ppHigh: 12, // post-prandial high threshold
+};
+
 
 /*  
 // demo data load example (from ./data/demo3days.json)
@@ -320,31 +330,75 @@ export default function InpatientDiabetesAdvisor() {
 
   const rulesOutput = useMemo(() => runRules(normalized, meds, context), [normalized, meds, context]);
 
+  // Tailored insulin titration suggestions (last 3 days)
+  const titrationRecs = useMemo(() => (
+    titrationSuggestions(
+      normalized,              // your normalized readings
+      insulinMeds,             // list with insulinId/dose/time
+      targets,
+      !!context?.steroid?.on,  // steroid AM bias if desired
+      3                        // look at last 3 days
+    )
+  ), [normalized, insulinMeds, context]);
+
+  // Merge with existing rule outputs
+  const combinedRules = useMemo(() => ({
+    alerts: rulesOutput.alerts,
+    recs: [...(rulesOutput.recs || []), ...(titrationRecs || [])],
+    stats: rulesOutput.stats
+  }), [rulesOutput, titrationRecs]);
+
+
+
   // somewhere near rulesOutput
   // this is the code for the data checker. 
-const LOOKBACK_HOURS = 24;
+  const LOOKBACK_HOURS = 24;
 
 // The readings your rules used (filter the normalized array by time)
-const readingsUsed = useMemo(() => {
-  const now = new Date();
-  return normalized.filter(r => (now - new Date(r.ts)) / 36e5 <= LOOKBACK_HOURS);
-}, [normalized]);
+  const readingsUsed = useMemo(() => {
+    const now = new Date();
+    return normalized.filter(r => (now - new Date(r.ts)) / 36e5 <= LOOKBACK_HOURS);
+  }, [normalized]);
 
 // Everything the Data Checker will display
-const modelInput = {
-  ruleVersion: 'v1.0',                // update when you change rules
-  lookbackHrs: LOOKBACK_HOURS,
-  diabetesType,                       // if you added this earlier
-  readingsUsed: readingsUsed.map(r => ({ ts: r.ts, value: r.value })),
-  stats: rulesOutput.stats,           // mean, hypos, etc.
-  insulinMeds,                        // your insulin list
-  context,                            // egfr, npo, weight, albumin, metformin/SU/steroids...
-  // optional: include minimal evidence from rules
-  rulesEvidence: {
-    alerts: rulesOutput.alerts,
-    recs: rulesOutput.recs?.map(r => ({ title: r.title }))
-  }
-};
+  const modelInput = {
+    ruleVersion: 'v1.0',
+    lookbackHrs: LOOKBACK_HOURS,
+    diabetesType,
+    readingsUsed: readingsUsed.map(r => ({ ts: r.ts, value: r.value })),
+    stats: combinedRules.stats,
+    insulinMeds,
+    context,
+    rulesEvidence: {
+      alerts: combinedRules.alerts,
+      recs: combinedRules.recs?.map(r => ({ title: r.title }))
+    }
+  };
+
+
+// Type of regimen: 'sliding-scale' | 'basal-bolus' | 'premix'
+  const [regimenType, setRegimenType] = useState('basal-bolus');
+
+// Sliding scale configuration (example)
+  const [slidingScale, setSlidingScale] = useState([
+  // ranges are inclusive of low, exclusive of high (e.g., 0–4, 4–8, …)
+    { low: 0,  high: 4,  units: 0, note: 'Treat hypo per protocol' },
+    { low: 8,  high: 10, units: 2 },
+    { low: 10, high: 12, units: 4 },
+    { low: 12, high: 14, units: 6 },
+    { low: 14, high: 99, units: 8 },
+  ]);
+
+  /* can be deleted accoridn to CHATGPT as defined above also 
+// Structured insulin meds (selected from catalogue)
+  const [insulinMeds, setInsulinMeds] = useState([
+  // { id, insulinId: 'glargine', doseUnits: 18, time: '22:00' }
+  ]);   */
+
+
+
+
+
 
   // ---- readings handlers (used by ReadingsList)
   function addRow(now = false) {
@@ -433,6 +487,10 @@ const modelInput = {
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<MedicationIcon />} title="Medication & context" subtitle="Tick what applies and add doses where relevant." />
                 <MedicationSection
+                  regimenType={regimenType}
+                  setRegimenType={setRegimenType}
+                  slidingScale={slidingScale}
+                  setSlidingScale={setSlidingScale}
                   insulinMeds={insulinMeds}
                   setInsulinMeds={setInsulinMeds}
                   context={context}
@@ -448,7 +506,7 @@ const modelInput = {
               <Button variant="outlined" onClick={() => setDataCheckerOpen(true)}>
                 Data checker
               </Button>
-              <AdvicePanel rulesOutput={rulesOutput} guidance={guidance} />
+              <AdvicePanel rulesOutput={combinedRules} guidance={guidance} />
             </Box>
           </Box>
           <DataCheckerDialog

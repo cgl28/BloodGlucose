@@ -2,16 +2,12 @@ import React from "react";
 import {
   Grid, Typography, Stack, FormControlLabel, Checkbox, TextField, Paper, Button, MenuItem, IconButton
 } from "@mui/material";
+import { Autocomplete } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const ACTING_OPTS = [
-  { value: 'rapid', label: 'Rapid' },
-  { value: 'short', label: 'Short' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'long', label: 'Long' },
-  { value: 'premix', label: 'Premix' },
-];
+// ⬇️ Your structured insulin list (adjust path if different)
+import { INSULIN_CATALOGUE } from "../data/insulins";
 
 export default function MedicationSection({
   insulinMeds, setInsulinMeds,
@@ -19,11 +15,16 @@ export default function MedicationSection({
 }) {
   // handlers for insulin list
   const addInsulin = () => {
-    setInsulinMeds(prev => [...prev, { id: crypto.randomUUID(), name: "", acting: "long", doseUnits: "", time: "" }]);
+    setInsulinMeds(prev => [
+      ...prev,
+      { id: crypto.randomUUID(), insulinId: null, doseUnits: "", time: "" }
+    ]);
   };
+
   const updateInsulin = (id, patch) => {
-    setInsulinMeds(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
+    setInsulinMeds(prev => prev.map(m => (m.id === id ? { ...m, ...patch } : m)));
   };
+
   const removeInsulin = (id) => {
     setInsulinMeds(prev => prev.filter(m => m.id !== id));
   };
@@ -42,52 +43,67 @@ export default function MedicationSection({
           )}
 
           <Stack spacing={1.5}>
-            {insulinMeds.map((m) => (
-              <Grid container spacing={1} alignItems="center" key={m.id}>
-                <Grid xs={12} md={3}>
-                  <TextField
-                    label="Insulin name"
-                    value={m.name}
-                    onChange={e => updateInsulin(m.id, { name: e.target.value })}
-                    fullWidth
-                  />
+            {insulinMeds.map((m) => {
+              const value = INSULIN_CATALOGUE.find(i => i.id === m.insulinId) || null;
+              return (
+                <Grid container spacing={1} alignItems="center" key={m.id}>
+                  <Grid xs={12} md={5}>
+                    <Autocomplete
+                      options={INSULIN_CATALOGUE}
+                      value={value}
+                      groupBy={(opt) => opt.acting.toUpperCase()}
+                      getOptionLabel={(opt) =>
+                        opt ? `${opt.brand} — ${opt.generic} (${opt.acting})` : ""
+                      }
+                      isOptionEqualToValue={(opt, val) => opt.id === (val?.id ?? val)}
+                      onChange={(_, val) => {
+                        // store the catalogue ID; also back-fill legacy name/acting if you still use them elsewhere
+                        updateInsulin(m.id, {
+                          insulinId: val?.id ?? null,
+                          name: val?.brand ?? "",          // legacy compatibility
+                          acting: val?.acting ?? undefined // legacy compatibility
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Insulin" placeholder="Search brand or generic" />
+                      )}
+                    />
+                    {value && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                        Acting: {value.acting}{value.durationH ? `, Duration ~${value.durationH}h` : ""}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid xs={6} md={2}>
+                    <TextField
+                      label="Dose (units)"
+                      type="number"
+                      value={m.doseUnits}
+                      onChange={e => updateInsulin(m.id, { doseUnits: e.target.value })}
+                      fullWidth
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+
+                  <Grid xs={6} md={3}>
+                    <TextField
+                      label="Time (HH:mm)"
+                      placeholder="22:00"
+                      value={m.time}
+                      onChange={e => updateInsulin(m.id, { time: e.target.value })}
+                      fullWidth
+                    />
+                  </Grid>
+
+                  <Grid xs={12} md={2}>
+                    <IconButton color="error" onClick={() => removeInsulin(m.id)} aria-label="Remove insulin">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Grid>
                 </Grid>
-                <Grid xs={12} md={3}>
-                  <TextField
-                    label="Type"
-                    select
-                    value={m.acting}
-                    onChange={e => updateInsulin(m.id, { acting: e.target.value })}
-                    fullWidth
-                  >
-                    {ACTING_OPTS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                  </TextField>
-                </Grid>
-                <Grid xs={6} md={2}>
-                  <TextField
-                    label="Dose (units)"
-                    type="number"
-                    value={m.doseUnits}
-                    onChange={e => updateInsulin(m.id, { doseUnits: e.target.value })}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid xs={6} md={2}>
-                  <TextField
-                    label="Time (HH:mm)"
-                    placeholder="22:00"
-                    value={m.time}
-                    onChange={e => updateInsulin(m.id, { time: e.target.value })}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid xs={12} md={2}>
-                  <IconButton color="error" onClick={() => removeInsulin(m.id)} aria-label="Remove insulin">
-                    <DeleteIcon />
-                  </IconButton>
-                </Grid>
-              </Grid>
-            ))}
+              );
+            })}
           </Stack>
 
           <Button variant="contained" startIcon={<AddIcon />} sx={{ mt: 1 }} onClick={addInsulin}>
