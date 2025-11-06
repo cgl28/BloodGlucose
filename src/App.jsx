@@ -23,8 +23,6 @@ import {
 } from "@mui/material";
 // use the Grid2 component (new API) to keep xs/md props working without warnings
 import Grid from "@mui/material/Grid";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -32,7 +30,12 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LinkIcon from "@mui/icons-material/Link";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { DataGrid } from "@mui/x-data-grid";
+
+// components (extracted)
+import SectionHeader from "./components/SectionHeader";
+import ReadingsList from "./components/ReadingsList";
+import MedicationSection from "./components/MedicationSection";
+import AdvicePanel from "./components/AdvicePanel";
 
 // ===== DISCLAIMER =====
 // This is a non-clinical demo for education only. Not for patient care.
@@ -272,27 +275,9 @@ export default function InpatientDiabetesAdvisor() {
 
   const rulesOutput = useMemo(() => runRules(normalized, meds, context), [normalized, meds, context]);
 
-  // ---- readings grid handlers
-  const columns = [
-    { field: "ts", headerName: "Timestamp", flex: 1, editable: true,
-      renderHeader: () => <Stack direction="row" alignItems="center" spacing={0.5}><AccessTimeIcon fontSize="small"/><span>Timestamp</span></Stack> },
-    { field: "value", headerName: "BG (mmol/L)", width: 150, type: "number", editable: true },
-  ];
-  const rows = readings.map(r => ({ ...r }));
-
-  function processRowUpdate(newRow) {
-    setReadings(prev => prev.map(r => r.id === newRow.id ? ({ ...r, ts: newRow.ts, value: newRow.value }) : r));
-    return newRow;
-  }
-
+  // ---- readings handlers (used by ReadingsList)
   function addRow(now = false) {
     setReadings(prev => [...prev, { id: crypto.randomUUID(), ts: now ? new Date().toISOString().slice(0,16) : "", value: "" }]);
-  }
-  function removeSelected(selectedId) {
-    if (!selectedId) return;
-    setReadings(prev => prev.filter(r => r.id !== selectedId));
-    // reset selection after removal
-    setSelection(null);
   }
   function clearRows() { setReadings([initialReadingRow()]); }
   function loadDemo() {
@@ -331,193 +316,26 @@ export default function InpatientDiabetesAdvisor() {
               {/* 1) BLOOD GLUCOSE INPUT */}
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<ScienceIcon />} title="Blood glucose readings" subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)." />
-                <Box sx={{ mt: 1 }}>
-                  {readings.map((r, i) => {
-                    const valueErr = r.value !== "" && asNumber(r.value) == null;
-                    return (
-                      <Stack key={r.id} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          label="Timestamp"
-                          type="datetime-local"
-                          value={r.ts}
-                          onChange={e => setReadings(prev => prev.map(x => x.id===r.id ? {...x, ts: e.target.value} : x))}
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ width: 280 }}
-                        />
-                        <TextField
-                          label="BG (mmol/L)"
-                          type="number"
-                          inputProps={{ step: "0.1", min: "0" }}
-                          value={r.value}
-                          onChange={e => setReadings(prev => prev.map(x => x.id===r.id ? {...x, value: e.target.value} : x))}
-                          error={valueErr}
-                          helperText={valueErr ? "Enter a number" : ""}
-                          sx={{ width: 160 }}
-                        />
-                        <Button variant="outlined" color="error" onClick={() => setReadings(prev => prev.filter(x => x.id !== r.id))}>Remove</Button>
-                        {i === readings.length - 1 && (
-                          <Button variant="contained" startIcon={<AddIcon />} onClick={() => addRow(true)}>Add Now</Button>
-                        )}
-                      </Stack>
-                    );
-                  })}
-                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                    <Button variant="text" onClick={() => addRow(false)}>Add empty row</Button>
-                    <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => clearRows()}>Clear all</Button>
-                  </Stack>
-                </Box>
-                 </Paper>
+                <ReadingsList readings={readings} setReadings={setReadings} addRow={addRow} clearRows={clearRows} />
+              </Paper>
 
               <Divider sx={{ my: 2 }} />
 
               {/* 2) MEDICATION INPUT */}
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<MedicationIcon />} title="Medication & context" subtitle="Tick what applies and add doses where relevant." />
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  {/* Insulins */}
-                  <Grid  xs={12}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Insulins</Typography>
-                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                      <FormControlLabel
-                        control={<Checkbox checked={meds.basalInsulin} onChange={e=>setMeds(m=>({...m, basalInsulin:e.target.checked}))} />}
-                        label="Basal insulin"
-                      />
-                      <TextField
-                        label="Basal dose (units/day)"
-                        type="number"
-                        value={meds.basalDose}
-                        onChange={e=>setMeds(m=>({...m, basalDose:e.target.value}))}
-                        sx={{ width: 240 }}
-                      />
-                      <FormControlLabel
-                        control={<Checkbox checked={meds.bolusInsulin} onChange={e=>setMeds(m=>({...m, bolusInsulin:e.target.checked}))} />}
-                        label="Prandial (bolus) insulin"
-                      />
-                    </Stack>
-                  </Grid>
-
-                  {/* Oral agents */}
-                  <Grid xs={12}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Key oral agents & steroids</Typography>
-                    <Stack spacing={1}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <FormControlLabel control={<Checkbox checked={meds.metformin} onChange={e => setMeds(m => ({...m, metformin: e.target.checked}))} />} label="Metformin" />
-                        <TextField label="Notes / dose" value={meds.metforminNotes || ""} onChange={e => setMeds(m => ({...m, metforminNotes: e.target.value}))} sx={{ width: 300 }} />
-                      </Stack>
-
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <FormControlLabel control={<Checkbox checked={meds.su} onChange={e => setMeds(m => ({...m, su: e.target.checked}))} />} label="Sulfonylurea" />
-                        <TextField label="Agent name" value={meds.suName} onChange={e => setMeds(m => ({...m, suName: e.target.value}))} sx={{ width: 200 }} />
-                        <TextField label="Dose (mg/day)" type="number" value={meds.suDose} onChange={e => setMeds(m => ({...m, suDose: e.target.value}))} sx={{ width: 160 }} />
-                      </Stack>
-
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <FormControlLabel control={<Checkbox checked={meds.steroidAM} onChange={e => setMeds(m => ({...m, steroidAM: e.target.checked}))} />} label="Once-daily AM steroid" />
-                        <TextField label="Steroid dose / notes" value={meds.steroidNotes || ""} onChange={e => setMeds(m => ({...m, steroidNotes: e.target.value}))} sx={{ width: 300 }} />
-                      </Stack>
-                    </Stack>
-                  </Grid>
-
-                  {/* Context */}
-                  <Grid  xs={12}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Clinical context</Typography>
-                    <Grid container spacing={2}>
-                      <Grid  xs={12} md={4}>
-                        <TextField
-                          label="eGFR (mL/min/1.73m²)"
-                          type="number"
-                          value={context.egfr}
-                          onChange={e=>setContext(c=>({...c, egfr: e.target.value}))}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid  xs={12} md={4}>
-                        <FormControlLabel
-                          control={<Checkbox checked={context.npo} onChange={e=>setContext(c=>({...c, npo: e.target.checked}))} />}
-                          label="Nil by mouth (NPO)"
-                        />
-                      </Grid>
-                      <Grid  xs={12} md={4}>
-                        <TextField
-                          label="Weight (kg)"
-                          type="number"
-                          value={context.weightKg}
-                          onChange={e=>setContext(c=>({...c, weightKg: e.target.value}))}
-                          fullWidth
-                        />
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                </Grid>
+                <MedicationSection meds={meds} setMeds={setMeds} context={context} setContext={setContext} />
               </Paper>
             </Grid>
 
             {/* RIGHT COLUMN: Advice & Links */}
             <Grid  xs={12} md={5}>
-              {/* 3) ADVICE */}
-              <Paper elevation={0} sx={{ p: 2, mb: 3 }}>
-                <SectionHeader icon={<InsightsIcon />} title="Advice" subtitle="Alerts and recommendations (for human review)." />
-                <Box sx={{ mt: 1 }}>
-                  {/* Alerts */}
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Alerts</Typography>
-                  {rulesOutput.alerts.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No active alerts from the entered data.</Typography>
-                  ) : (
-                    <Stack spacing={1.5}>
-                      {rulesOutput.alerts.map((a, i) => (
-                        <Alert key={i} severity={a.severity === "stat" ? "error" : "warning"} variant="outlined">
-                          <AlertTitle>{a.title}</AlertTitle>
-                          {a.detail}
-                          {a.evidence && <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>Evidence: {a.evidence}</Typography>}
-                        </Alert>
-                      ))}
-                    </Stack>
-                  )}
-
-                  <Divider sx={{ my: 2 }} />
-
-                  {/* Recommendations */}
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Recommendations</Typography>
-                  {rulesOutput.recs.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No specific medication suggestions from the entered data.</Typography>
-                  ) : (
-                    <Stack spacing={1.5}>
-                      {rulesOutput.recs.map((r, i) => (
-                        <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
-                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                            <Chip label="Advisory" color="primary" size="small" />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{r.title}</Typography>
-                          </Stack>
-                          <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>{r.body}</Typography>
-                          {r.caveat && <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>{r.caveat}</Typography>}
-                        </Paper>
-                      ))}
-                    </Stack>
-                  )}
-
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-                    Prototype only — check local guidelines and consult the diabetes team.
-                  </Typography>
-                </Box>
-              </Paper>
-
-              {/* Summary stats */}
+              <AdvicePanel rulesOutput={rulesOutput} guidance={guidance} />
               <Paper elevation={0} sx={{ p: 2, mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
                 <SummaryTable stats={rulesOutput.stats} />
               </Paper>
-
-              {/* 4) LINKS TO GUIDANCE */}
-              <Paper elevation={0} sx={{ p: 2 }}>
-                <SectionHeader icon={<LinkIcon />} title="Guidance & Policies" subtitle="References used when forming suggestions." />
-                <Stack spacing={1} sx={{ mt: 1 }}>
-                  {guidance.map((g) => (
-                    <Link key={g.label} href={g.href} underline="hover" target="_blank" rel="noreferrer">
-                      {g.label}
-                    </Link>
-                  ))}
-                </Stack>
-              </Paper>
+              {/* Guidance links moved into AdvicePanel */}
             </Grid>
           </Grid>
 
@@ -533,24 +351,6 @@ export default function InpatientDiabetesAdvisor() {
 }
 
 // ---------- Reusable bits ----------
-function SectionHeader({ icon, title, subtitle }) {
-  return (
-    <Stack direction="row" spacing={1.5} alignItems="center">
-      <Box sx={{
-        width: 36, height: 36, borderRadius: 1,
-        display: "grid", placeItems: "center",
-        bgcolor: "primary.main", color: "primary.contrastText"
-      }}>
-        {icon}
-      </Box>
-      <Box>
-        <Typography variant="h6">{title}</Typography>
-        {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}
-      </Box>
-    </Stack>
-  );
-}
-
 function SummaryTable({ stats }) {
   const rows = [
     ["# readings (24h)", stats.n24h?.toString() ?? "—"],
