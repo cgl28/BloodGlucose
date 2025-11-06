@@ -35,6 +35,9 @@ import ReadingsList from "./components/ReadingsList";
 import MedicationSection from "./components/MedicationSection";
 import AdvicePanel from "./components/AdvicePanel";
 import GlucoseDayOverlayChart from './components/GlucoseDayOverlayChart'
+import Grid from "@mui/material/Grid";
+import DataCheckerDialog from './components/DataCheckerDialog'
+
 
 // ===== DISCLAIMER =====
 // This is a non-clinical demo for education only. Not for patient care.
@@ -285,6 +288,12 @@ export default function InpatientDiabetesAdvisor() {
   const [readings, setReadings] = useState([initialReadingRow()]);
 // Diabetes type: 'type1' | 'type2' | 'other'
   const [diabetesType, setDiabetesType] = useState('type2');
+// Multiple insulin medications
+  const [insulinMeds, setInsulinMeds] = useState([]);
+// Example item: { id, name: 'Insulatard', acting: 'long'|'intermediate'|'rapid'|'short'|'premix', doseUnits: 18, time: '22:00' }
+  const [dataCheckerOpen, setDataCheckerOpen] = useState(false); 
+// Stat return button for the rules checker for data source
+
   const [meds, setMeds] = useState({
     basalInsulin: false, basalDose: "",
     bolusInsulin: false,
@@ -292,7 +301,13 @@ export default function InpatientDiabetesAdvisor() {
     metformin: false, sglt2: false,
     steroidAM: false,
   });
-  const [context, setContext] = useState({ egfr: "", npo: false, weightKg: "" });
+
+  const [context, setContext] = useState({
+    egfr: "", npo: false, weightKg: "", albumin: "",
+    metformin: false, metforminDose: "",
+    su: false, suName: "Gliclazide", suDose: "",
+    steroid: { on: false, type: "", route: "oral", dose: "", time: "", duration: "" }
+  });
 
   const normalized = useMemo(() => {
     const rows = readings
@@ -304,6 +319,32 @@ export default function InpatientDiabetesAdvisor() {
   }, [readings]);
 
   const rulesOutput = useMemo(() => runRules(normalized, meds, context), [normalized, meds, context]);
+
+  // somewhere near rulesOutput
+  // this is the code for the data checker. 
+const LOOKBACK_HOURS = 24;
+
+// The readings your rules used (filter the normalized array by time)
+const readingsUsed = useMemo(() => {
+  const now = new Date();
+  return normalized.filter(r => (now - new Date(r.ts)) / 36e5 <= LOOKBACK_HOURS);
+}, [normalized]);
+
+// Everything the Data Checker will display
+const modelInput = {
+  ruleVersion: 'v1.0',                // update when you change rules
+  lookbackHrs: LOOKBACK_HOURS,
+  diabetesType,                       // if you added this earlier
+  readingsUsed: readingsUsed.map(r => ({ ts: r.ts, value: r.value })),
+  stats: rulesOutput.stats,           // mean, hypos, etc.
+  insulinMeds,                        // your insulin list
+  context,                            // egfr, npo, weight, albumin, metformin/SU/steroids...
+  // optional: include minimal evidence from rules
+  rulesEvidence: {
+    alerts: rulesOutput.alerts,
+    recs: rulesOutput.recs?.map(r => ({ title: r.title }))
+  }
+};
 
   // ---- readings handlers (used by ReadingsList)
   function addRow(now = false) {
@@ -391,15 +432,30 @@ export default function InpatientDiabetesAdvisor() {
 
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<MedicationIcon />} title="Medication & context" subtitle="Tick what applies and add doses where relevant." />
-                <MedicationSection meds={meds} setMeds={setMeds} context={context} setContext={setContext} />
+                <MedicationSection
+                  insulinMeds={insulinMeds}
+                  setInsulinMeds={setInsulinMeds}
+                  context={context}
+                  setContext={setContext}
+                />
               </Paper>
             </Box>
 
             {/* RIGHT COLUMN: Advice & Links */}
+            
             <Box>
+              {/* near the Advice panel title/actions (right column) */}    
+              <Button variant="outlined" onClick={() => setDataCheckerOpen(true)}>
+                Data checker
+              </Button>
               <AdvicePanel rulesOutput={rulesOutput} guidance={guidance} />
             </Box>
           </Box>
+          <DataCheckerDialog
+            open={dataCheckerOpen}
+            onClose={() => setDataCheckerOpen(false)}
+            modelInput={modelInput}
+          />
         </Container>
       </ThemeProvider>
     </ErrorBoundary>
