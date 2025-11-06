@@ -56,21 +56,45 @@ function asNumber(x) { const n = Number(x); return Number.isFinite(n) ? n : null
 
 const initialReadingRow = () => ({ id: crypto.randomUUID(), ts: "", value: "" });
 
+/*  
+// demo data load example (from ./data/demo3days.json)
+
+import demo3days from './data/demo3days.json'
+
+function loadDemo() {
+  setReadings(demo3days.readings.map(r => ({ id: crypto.randomUUID(), ...r })))
+  setMeds(demo3days.meds)
+  setContext(demo3days.context)
+}
+
+*/
+
 const demoData = {
   readings: [
-    { id: crypto.randomUUID(), ts: new Date(Date.now() - 23*3600*1000).toISOString().slice(0,16), value: 3.2 },
-    { id: crypto.randomUUID(), ts: new Date(Date.now() - 20*3600*1000).toISOString().slice(0,16), value: 7.8 },
-    { id: crypto.randomUUID(), ts: new Date(Date.now() - 8*3600*1000).toISOString().slice(0,16), value: 14.2 },
-    { id: crypto.randomUUID(), ts: new Date(Date.now() - 6*3600*1000).toISOString().slice(0,16), value: 12.9 },
-    { id: crypto.randomUUID(), ts: new Date(Date.now() - 2*3600*1000).toISOString().slice(0,16), value: 11.4 },
+    // Day 1 (2025-11-03)
+    { id: crypto.randomUUID(), ts: "2025-11-03T08:10", value: 7.2 },
+    { id: crypto.randomUUID(), ts: "2025-11-03T14:20", value: 13.8 },
+    { id: crypto.randomUUID(), ts: "2025-11-03T22:15", value: 5.6 },
+
+    // Day 2 (2025-11-04)
+    { id: crypto.randomUUID(), ts: "2025-11-04T07:55", value: 3.4 }, // hypo
+    { id: crypto.randomUUID(), ts: "2025-11-04T16:05", value: 12.6 },
+    { id: crypto.randomUUID(), ts: "2025-11-04T21:40", value: 10.8 },
+
+    // Day 3 (2025-11-05)
+    { id: crypto.randomUUID(), ts: "2025-11-05T09:00", value: 8.1 },
+    { id: crypto.randomUUID(), ts: "2025-11-05T15:30", value: 14.2 }, // steroid pattern
+    { id: crypto.randomUUID(), ts: "2025-11-05T23:10", value: 6.4 },
   ],
   meds: {
-    basalInsulin: true, basalDose: 18, bolusInsulin: false,
+    basalInsulin: true, basalDose: 18,
+    bolusInsulin: false,
     su: true, suName: "Gliclazide", suDose: 80,
-    metformin: true, sglt2: false, steroidAM: true,
+    metformin: true, sglt2: false, steroidAM: true
   },
   context: { egfr: 28, npo: false, weightKg: 78 }
-};
+}
+
 
 // ---------- rules engine (from your original) ----------
 function runRules(readings, meds, context) {
