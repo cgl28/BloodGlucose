@@ -21,8 +21,6 @@ import {
   ThemeProvider,
   createTheme,
 } from "@mui/material";
-// use the Grid2 component (new API) to keep xs/md props working without warnings
-import Grid from "@mui/material/Grid";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -342,27 +340,34 @@ export default function InpatientDiabetesAdvisor() {
         </AppBar>
 
         <Container maxWidth="lg" sx={{ my: 3 }}>
-          <Grid container spacing={3}>
+          <Box
+            component="section"
+            sx={{
+              display: "grid",
+              gap: 3,
+              gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" },
+            }}
+          >
             {/* LEFT COLUMN: Inputs */}
-            <Paper elevation={0} sx={{ p: 2, mb: 2 }}>
-              <SectionHeader title="Diabetes type" subtitle="Select the patient’s diabetes type" />
-              <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
-                <FormControlLabel
-                  control={<Checkbox checked={diabetesType==='type1'} onChange={() => setDiabetesType('type1')} />}
-                  label="Type 1"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={diabetesType==='type2'} onChange={() => setDiabetesType('type2')} />}
-                  label="Type 2"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={diabetesType==='other'} onChange={() => setDiabetesType('other')} />}
-                  label="Other"
-                />
-              </Stack>
-            </Paper>
-            <Grid  xs={12} md={7}>
-              {/* 1) BLOOD GLUCOSE INPUT */}
+            <Box>
+              <Paper elevation={0} sx={{ p: 2, mb: 2 }}>
+                <SectionHeader title="Diabetes type" subtitle="Select the patient’s diabetes type" />
+                <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+                  <FormControlLabel
+                    control={<Checkbox checked={diabetesType==='type1'} onChange={() => setDiabetesType('type1')} />}
+                    label="Type 1"
+                  />
+                  <FormControlLabel
+                    control={<Checkbox checked={diabetesType==='type2'} onChange={() => setDiabetesType('type2')} />}
+                    label="Type 2"
+                  />
+                  <FormControlLabel
+                    control={<Checkbox checked={diabetesType==='other'} onChange={() => setDiabetesType('other')} />}
+                    label="Other"
+                  />
+                </Stack>
+              </Paper>
+
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<ScienceIcon />} title="Blood glucose readings" subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)." />
                 <ReadingsList readings={readings} setReadings={setReadings} addRow={addRow} clearRows={clearRows} />
@@ -370,47 +375,30 @@ export default function InpatientDiabetesAdvisor() {
                 {/* 24-hour overlay chart (inserted under the input list) */}
                 <Box sx={{ mt: 2 }}>
                   <SectionHeader title="24-hour overlay chart" subtitle="Each colour is a different day — target band highlighted." />
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid xs={12} md={8}>
-                      <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
-                        <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
-                      </Paper>
-                    </Grid>
-                    <Grid xs={12} md={4}>
-                      <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
-                        <SummaryTable stats={rulesOutput.stats} />
-                      </Paper>
-                    </Grid>
-                  </Grid>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2, mt: 1 }}>
+                    <Paper elevation={0} sx={{ p: 2, height: 360 }}>
+                      <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
+                    </Paper>
+                    <Paper elevation={0} sx={{ p: 2, height: 360 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
+                      <SummaryTable stats={rulesOutput.stats} />
+                    </Paper>
+                  </Box>
                 </Box>
               </Paper>
 
               <Divider sx={{ my: 2 }} />
 
-              {/* 2) MEDICATION INPUT */}
               <Paper elevation={0} sx={{ p: 2 }}>
                 <SectionHeader icon={<MedicationIcon />} title="Medication & context" subtitle="Tick what applies and add doses where relevant." />
                 <MedicationSection meds={meds} setMeds={setMeds} context={context} setContext={setContext} />
               </Paper>
-            </Grid>
+            </Box>
 
             {/* RIGHT COLUMN: Advice & Links */}
-            <Grid  xs={12} md={5}>
+            <Box>
               <AdvicePanel rulesOutput={rulesOutput} guidance={guidance} />
-              {/*
-              <Paper elevation={0} sx={{ p: 2, mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
-                <SummaryTable stats={rulesOutput.stats} />
-              </Paper> */}
-              {/* Guidance links moved into AdvicePanel */}
-            </Grid>
-          </Grid>
-
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="caption" color="text.secondary">
-              Built as a proof-of-concept for showcasing EPR integration. Not for clinical use.
-            </Typography>
+            </Box>
           </Box>
         </Container>
       </ThemeProvider>
