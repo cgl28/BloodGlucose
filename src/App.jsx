@@ -28,6 +28,7 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LinkIcon from "@mui/icons-material/Link";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { CssBaseline } from '@mui/material'
 
 
 // components (extracted)
@@ -422,101 +423,133 @@ export default function InpatientDiabetesAdvisor() {
   ];
 
   return (
+    <>
+      {/* ✅ CssBaseline goes right here — very top of your app */}
+      <CssBaseline />
     <ErrorBoundary>
+      
       <ThemeProvider theme={nhsTheme}>
+      
         <AppBar position="sticky" color="primary" enableColorOnDark>
-          <Toolbar sx={{ gap: 2 }}>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>Inpatient Diabetes Advisor — Prototype</Typography>
-            <Stack direction="row" spacing={1}>
+          <Toolbar disableGutters>
+            <Container maxWidth="lg" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                Inpatient Diabetes Advisor — Prototype
+              </Typography>
               <Button onClick={loadDemo} variant="outlined" color="inherit" startIcon={<ContentCopyIcon />}>Load demo</Button>
               <Button onClick={clearRows} variant="outlined" color="inherit" startIcon={<RestartAltIcon />}>Clear</Button>
-            </Stack>
+              <Button onClick={() => setDataCheckerOpen(true)} variant="outlined" color="inherit" startIcon={<ScienceIcon />}>Data checker</Button>
+            </Container>
           </Toolbar>
         </AppBar>
 
         <Container maxWidth="lg" sx={{ my: 3 }}>
-          <Box
-            component="section"
-            sx={{
-              display: "grid",
-              gap: 3,
-              gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" },
-            }}
-          >
-            {/* LEFT COLUMN: Inputs */}
-            <Box>
-              <Paper elevation={0} sx={{ p: 2, mb: 2 }}>
-                <SectionHeader title="Diabetes type" subtitle="Select the patient’s diabetes type" />
-                <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
-                  <FormControlLabel
-                    control={<Checkbox checked={diabetesType==='type1'} onChange={() => setDiabetesType('type1')} />}
-                    label="Type 1"
-                  />
-                  <FormControlLabel
-                    control={<Checkbox checked={diabetesType==='type2'} onChange={() => setDiabetesType('type2')} />}
-                    label="Type 2"
-                  />
-                  <FormControlLabel
-                    control={<Checkbox checked={diabetesType==='other'} onChange={() => setDiabetesType('other')} />}
-                    label="Other"
-                  />
-                </Stack>
-              </Paper>
-
-              <Paper elevation={0} sx={{ p: 2 }}>
-                <SectionHeader icon={<ScienceIcon />} title="Blood glucose readings" subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)." />
-                <ReadingsList readings={readings} setReadings={setReadings} addRow={addRow} clearRows={clearRows} />
-
-                {/* 24-hour overlay chart (inserted under the input list) */}
-                <Box sx={{ mt: 2 }}>
-                  <SectionHeader title="24-hour overlay chart" subtitle="Each colour is a different day — target band highlighted." />
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2, mt: 1 }}>
-                    <Paper elevation={0} sx={{ p: 2, height: 360 }}>
-                      <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
-                    </Paper>
-                    <Paper elevation={0} sx={{ p: 2, height: 360 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Summary (last 24h)</Typography>
-                      <SummaryTable stats={rulesOutput.stats} />
-                    </Paper>
-                  </Box>
-                </Box>
-              </Paper>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Paper elevation={0} sx={{ p: 2 }}>
-                <SectionHeader icon={<MedicationIcon />} title="Medication & context" subtitle="Tick what applies and add doses where relevant." />
-                <MedicationSection
-                  regimenType={regimenType}
-                  setRegimenType={setRegimenType}
-                  slidingScale={slidingScale}
-                  setSlidingScale={setSlidingScale}
-                  insulinMeds={insulinMeds}
-                  setInsulinMeds={setInsulinMeds}
-                  context={context}
-                  setContext={setContext}
+          <Stack spacing={2}>
+            {/* 1) Diabetes type */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader title="Diabetes type" subtitle="Select the patient’s diabetes type" />
+              <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='type1'} onChange={() => setDiabetesType('type1')} />}
+                  label="Type 1"
                 />
-              </Paper>
-            </Box>
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='type2'} onChange={() => setDiabetesType('type2')} />}
+                  label="Type 2"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={diabetesType==='other'} onChange={() => setDiabetesType('other')} />}
+                  label="Other"
+                />
+              </Stack>
+            </Paper>
 
-            {/* RIGHT COLUMN: Advice & Links */}
-            
-            <Box>
-              {/* near the Advice panel title/actions (right column) */}    
-              <Button variant="outlined" onClick={() => setDataCheckerOpen(true)}>
-                Data checker
-              </Button>
+            {/* 2) Blood glucose readings */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader
+                icon={<ScienceIcon />}
+                title="Blood glucose readings"
+                subtitle="Enter capillary or lab values (mmol/L) with timestamps (local time)."
+              />
+              <ReadingsList
+                readings={readings}
+                setReadings={setReadings}
+                addRow={addRow}
+                clearRows={clearRows}
+              />
+            </Paper>
+
+            {/* 3) 24-hour overlay chart */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader title="24-hour overlay chart" subtitle="Each colour is a different day — target band highlighted." />
+              <Box sx={{ mt: 1, height: 360 }}>
+                <GlucoseDayOverlayChart readings={normalized} yDomain={[0, 25]} />
+              </Box>
+            </Paper>
+
+            {/* 4) Summary (last 24h) */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader title="Summary (last 24h)" icon={<AccessTimeIcon />} />
+              <SummaryTable stats={combinedRules.stats} />
+            </Paper>
+
+            {/* 5 & 6) Insulin regimen + Clinical context (kept together due to single component) */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader
+                icon={<MedicationIcon />}
+                title="Insulin regimen"
+                subtitle="Configure regimen and doses."
+              />
+              {/* If you want a visible divider title for 'Clinical context', add a small subheader below */}
+              <MedicationSection
+                regimenType={regimenType}
+                setRegimenType={setRegimenType}
+                slidingScale={slidingScale}
+                setSlidingScale={setSlidingScale}
+                insulinMeds={insulinMeds}
+                setInsulinMeds={setInsulinMeds}
+                context={context}
+                setContext={setContext}
+              />
+              {/* Optional: visually indicate the 'Clinical context' subsection */}
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                Clinical context
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Adjust parameters above (renal function, NPO status, steroid use, etc.).
+              </Typography>
+            </Paper>
+
+            {/* 7) Advice */}
+            <Paper elevation={0} sx={{ p: 0 }}>
               <AdvicePanel rulesOutput={combinedRules} guidance={guidance} />
-            </Box>
-          </Box>
+            </Paper>
+
+            {/* 8) Guidance & Policies (explicit final section for your order) */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader icon={<LinkIcon />} title="Guidance & Policies" />
+              <Stack spacing={1} sx={{ mt: 1 }}>
+                {guidance.map((g) => (
+                  <Link key={g.label} href={g.href} underline="hover" target="_blank" rel="noreferrer">
+                    {g.label}
+                  </Link>
+                ))}
+              </Stack>
+            </Paper>
+          </Stack>
+
+          {/* Data checker dialog (unchanged) */}
           <DataCheckerDialog
             open={dataCheckerOpen}
             onClose={() => setDataCheckerOpen(false)}
             modelInput={modelInput}
           />
         </Container>
+
       </ThemeProvider>
     </ErrorBoundary>
+    </>
   );
 }
 
