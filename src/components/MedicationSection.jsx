@@ -30,7 +30,7 @@ export default function MedicationSection({
   };
 
   return (
-    <Grid container spacing={2} sx={{ mt: 1 }}>
+    <Grid container spacing={3} sx={{ mt: 1 }}>
       {/* INSULIN REGIMEN */}
       <Grid xs={12}>
         <Paper elevation={0} sx={{ p: 2 }}>
@@ -42,72 +42,117 @@ export default function MedicationSection({
             </Typography>
           )}
 
-          <Stack spacing={1.5}>
+          <Stack spacing={2.5}>
             {insulinMeds.map((m) => {
-              const value = INSULIN_CATALOGUE.find(i => i.id === m.insulinId) || null;
-              return (
-                <Grid container spacing={1} alignItems="center" key={m.id}>
-                  <Grid xs={12} md={5}>
-                    <Autocomplete
-                      options={INSULIN_CATALOGUE}
-                      value={value}
-                      groupBy={(opt) => opt.acting.toUpperCase()}
-                      getOptionLabel={(opt) =>
-                        opt ? `${opt.brand} — ${opt.generic} (${opt.acting})` : ""
-                      }
-                      isOptionEqualToValue={(opt, val) => opt.id === (val?.id ?? val)}
-                      onChange={(_, val) => {
-                        // store the catalogue ID; also back-fill legacy name/acting if you still use them elsewhere
-                        updateInsulin(m.id, {
-                          insulinId: val?.id ?? null,
-                          name: val?.brand ?? "",          // legacy compatibility
-                          acting: val?.acting ?? undefined // legacy compatibility
-                        });
-                      }}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Insulin" placeholder="Search brand or generic" />
-                      )}
-                    />
-                    {value && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                        Acting: {value.acting}{value.durationH ? `, Duration ~${value.durationH}h` : ""}
-                      </Typography>
-                    )}
-                  </Grid>
+                const value = INSULIN_CATALOGUE.find(i => i.id === m.insulinId) || null;
+                return (
+                <Paper key={m.id} variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Grid container spacing={1.5} alignItems="center">
+                    {/* Make the autocomplete dominate the row on desktop */}
+                    <Grid xs={12} sx={{ minWidth: { xs: '100%', sm: 'calc(15% * 3)' }, flexGrow: 1 }}>
+                        <Autocomplete
+                        options={INSULIN_CATALOGUE}
+                        value={value}
+                        groupBy={(opt) => opt.acting.toUpperCase()}
+                        getOptionLabel={(opt) =>
+                            opt ? `${opt.brand} — ${opt.generic} (${opt.acting})` : ""
+                        }
+                        isOptionEqualToValue={(opt, val) => opt.id === (val?.id ?? val)}
+                        onChange={(_, val) => {
+                            updateInsulin(m.id, {
+                            insulinId: val?.id ?? null,
+                            name: val?.brand ?? "",
+                            acting: val?.acting ?? undefined,
+                            });
+                        }}
+                        // UX niceties
+                        openOnFocus
+                        autoHighlight
+                        disablePortal
+                        // Make the control physically bigger
+                        sx={{
+                            '& .MuiAutocomplete-inputRoot': {
+                            py: 1.25,                 // taller control
+                            fontSize: 16,             // larger text
+                            },
+                            '& .MuiInputLabel-root': { fontSize: 16 },
+                        }}
+                        ListboxProps={{
+                            sx: {
+                            maxHeight: 420,
+                            '& .MuiAutocomplete-option': { py: 1.25, lineHeight: 1.4 },
+                            },
+                        }}
+                        renderInput={(params) => (
+                            <TextField
+                            {...params}
+                            label="Insulin Medication"
+                            placeholder="Search brand or generic"
+                            fullWidth
+                            // ensure the input itself is tall
+                            InputProps={{
+                                ...params.InputProps,
+                                sx: { height: 56 }, // ~MUI 'large' feel
+                            }}
+                            />
+                        )}
+                        renderOption={(props, opt) => (
+                            <li {...props} key={opt.id}>
+                            <Stack spacing={0} sx={{ width: '100%' }}>
+                                <Typography sx={{ fontWeight: 600 }}>{opt.brand}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                {opt.generic} — {opt.acting}{opt.durationH ? ` • ~${opt.durationH}h` : ''}
+                                </Typography>
+                            </Stack>
+                            </li>
+                        )}
+                        />
+                        {value && (
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.75 }}
+                        >
+                            Acting: {value.acting}{value.durationH ? `, Duration ~${value.durationH}h` : ""}
+                        </Typography>
+                        )}
+                    </Grid>
 
-                  <Grid xs={6} md={2}>
-                    <TextField
-                      label="Dose (units)"
-                      type="number"
-                      value={m.doseUnits}
-                      onChange={e => updateInsulin(m.id, { doseUnits: e.target.value })}
-                      fullWidth
-                      inputProps={{ min: 0 }}
-                    />
-                  </Grid>
+                    <Grid xs={6} md={2}>
+                        <TextField
+                        label="Dose (units)"
+                        type="number"
+                        value={m.doseUnits}
+                        onChange={e => updateInsulin(m.id, { doseUnits: e.target.value })}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                        />
+                    </Grid>
 
-                  <Grid xs={6} md={3}>
-                    <TextField
-                      label="Time (HH:mm)"
-                      placeholder="22:00"
-                      value={m.time}
-                      onChange={e => updateInsulin(m.id, { time: e.target.value })}
-                      fullWidth
-                    />
-                  </Grid>
+                    <Grid xs={6} md={2.5}>
+                        <TextField
+                        label="Time (HH:mm)"
+                        placeholder="22:00"
+                        value={m.time}
+                        onChange={e => updateInsulin(m.id, { time: e.target.value })}
+                        fullWidth
+                        />
+                    </Grid>
 
-                  <Grid xs={12} md={2}>
-                    <IconButton color="error" onClick={() => removeInsulin(m.id)} aria-label="Remove insulin">
-                      <DeleteIcon />
-                    </IconButton>
-                  </Grid>
-                </Grid>
-              );
+                    <Grid xs={12} md="auto" sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                        <IconButton color="error" onClick={() => removeInsulin(m.id)} aria-label="Remove insulin">
+                        <DeleteIcon />
+                        </IconButton>
+                    </Grid>
+                    </Grid>
+                </Paper>
+                );
             })}
-          </Stack>
+            </Stack>
+
 
           <Button variant="contained" startIcon={<AddIcon />} sx={{ mt: 1 }} onClick={addInsulin}>
-            Add medication
+            Add Insulin medication
           </Button>
         </Paper>
       </Grid>

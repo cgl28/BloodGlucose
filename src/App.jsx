@@ -39,7 +39,10 @@ import AdvicePanel from "./components/AdvicePanel";
 import GlucoseDayOverlayChart from './components/GlucoseDayOverlayChart'
 import Grid from "@mui/material/Grid";
 import DataCheckerDialog from './components/DataCheckerDialog'
+
 import titrationSuggestions from './lib/titration';
+
+import ClinicalContextSection from './components/ClinicalContextSection';
 
 
 
@@ -377,7 +380,7 @@ export default function InpatientDiabetesAdvisor() {
   };
 
 
-// Type of regimen: 'sliding-scale' | 'basal-bolus' | 'premix'
+  // Type of regimen: 'sliding-scale' | 'basal-bolus' | 'premix'
   const [regimenType, setRegimenType] = useState('basal-bolus');
 
 // Sliding scale configuration (example)
@@ -493,14 +496,14 @@ export default function InpatientDiabetesAdvisor() {
               <SummaryTable stats={combinedRules.stats} />
             </Paper>
 
-            {/* 5 & 6) Insulin regimen + Clinical context (kept together due to single component) */}
+
+            {/* --- Insulin regimen --- */}
             <Paper elevation={0} sx={{ p: 2 }}>
               <SectionHeader
                 icon={<MedicationIcon />}
                 title="Insulin regimen"
                 subtitle="Configure regimen and doses."
               />
-              {/* If you want a visible divider title for 'Clinical context', add a small subheader below */}
               <MedicationSection
                 regimenType={regimenType}
                 setRegimenType={setRegimenType}
@@ -508,17 +511,22 @@ export default function InpatientDiabetesAdvisor() {
                 setSlidingScale={setSlidingScale}
                 insulinMeds={insulinMeds}
                 setInsulinMeds={setInsulinMeds}
+                // If MedicationSection no longer needs context, you can remove these two lines:
                 context={context}
                 setContext={setContext}
               />
-              {/* Optional: visually indicate the 'Clinical context' subsection */}
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Clinical context
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Adjust parameters above (renal function, NPO status, steroid use, etc.).
-              </Typography>
+            </Paper>
+
+            {/* --- Clinical context --- */}
+            <Paper elevation={0} sx={{ p: 2 }}>
+              <SectionHeader
+                title="Clinical context"
+                subtitle="Patient factors influencing insulin needs (renal function, NBM, steroid use, etc.)"
+              />
+              <ClinicalContextSection
+                context={context}
+                setContext={setContext}
+              />
             </Paper>
 
             {/* 7) Advice */}
@@ -576,3 +584,4 @@ function SummaryTable({ stats }) {
     </Box>
   );
 }
+
